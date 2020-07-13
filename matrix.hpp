@@ -71,11 +71,6 @@ private:
 public:
 
     /*
-     * The type of the values contained in the matrix.
-    */
-    typedef T value_type;
-
-    /*
      * Construct a matrix with the given dimensions r and c
      * and fill it with zero.
     */
@@ -199,7 +194,7 @@ public:
     /*
      * Get the transpose of this matrix.
     */
-    Matrix<T> transpose() const {
+    Matrix<T> t() const {
         Matrix<T> result(cols_, rows_, T(0));
 
         for (std::size_t i = 0; i < result.rows(); i++) {
@@ -248,7 +243,7 @@ public:
 ///////////////Matrix Operations///////////////
 
 
-
+/* Element-wise addition. */
 template <typename E1, typename E2, typename T>
 class MatSum : public MatOp<MatSum<E1, E2, T>, T> {
 
@@ -289,8 +284,7 @@ MatSum<E1, E2, T> operator+(MatOp<E1, T> const& u, MatOp<E2, T> const& v) {
 
 
 
-
-
+/* Element-wise subtraction. */
 template <typename E1, typename E2, typename T>
 class MatSub : public MatOp<MatSub<E1, E2, T>, T> {
 
@@ -331,9 +325,135 @@ MatSub<E1, E2, T> operator-(MatOp<E1, T> const& u, MatOp<E2, T> const& v) {
 
 
 
+/* Element-wise multiplication. */
+template <typename E1, typename E2, typename T>
+class MatElMul : public MatOp<MatElMul<E1, E2, T>, T> {
+
+private:
+
+    E1 const& _u;
+    E2 const& _v;
+
+public:
+
+    MatElMul(E1 const& u, E2 const& v) : _u(u), _v(v) {
+        assert(u.size() == v.size());
+        assert(u.rows() == v.rows());
+        assert(u.cols() == v.cols());
+    }
+
+    T operator()(std::size_t i, std::size_t j) const {
+        return _u(i,j) * _v(i,j);
+    }
+
+    std::size_t size() const {
+        return _u.size();
+    }
+
+    std::size_t rows() const {
+        return static_cast<E1 const&>(_u).rows();
+    }
+
+    std::size_t cols() const {
+        return static_cast<E1 const&>(_u).cols();
+    }
+};
+
+/* The element wise multiplication is defined to be & instead of *, which is reserved
+ * for matrix multiplication.
+*/
+template <typename E1, typename E2, typename T>
+MatElMul<E1, E2, T> operator&(MatOp<E1, T> const& u, MatOp<E2, T> const& v) {
+   return MatElMul<E1, E2, T>(*static_cast<const E1*>(&u), *static_cast<const E2*>(&v));
+}
 
 
-// function template for << operator
+/* Scalar multiplication. */
+template <typename E, typename T>
+class MatScale : public MatOp<MatScale<E, T>, T> {
+
+private:
+
+    E const& _u;
+    T const& _v;
+
+public:
+
+    MatScale(E const& u, T const& v) : _u(u), _v(v) {
+    }
+
+    T operator()(std::size_t i, std::size_t j) const {
+        return _u(i,j) * _v;
+    }
+
+    std::size_t size() const {
+        return _u.size();
+    }
+
+    std::size_t rows() const {
+        return static_cast<E const&>(_u).rows();
+    }
+
+    std::size_t cols() const {
+        return static_cast<E const&>(_u).cols();
+    }
+};
+
+/* Overload the scalar multiplication so that it can be done on both sides. */
+
+template <typename E, typename T>
+MatScale<E, T> operator*(MatOp<E, T> const& u, T const& v) {
+   return MatScale<E, T>(*static_cast<const E*>(&u), *static_cast<const T*>(&v));
+}
+
+template <typename E, typename T>
+MatScale<E, T> operator*(T const& v, MatOp<E, T> const& u) {
+   return MatScale<E, T>(*static_cast<const E*>(&u), *static_cast<const T*>(&v));
+}
+
+
+
+/* Element-wise multiplication. */
+template <typename E1, typename E2, typename T>
+class MatMul : public MatOp<MatMul<E1, E2, T>, T> {
+
+private:
+
+    E1 const& _u;
+    E2 const& _v;
+
+public:
+
+    MatMul(E1 const& u, E2 const& v) : _u(u), _v(v) {
+        // pre-condition for matrix multiplication.
+        assert(u.cols() == v.rows());
+    }
+
+    T operator()(std::size_t i, std::size_t j) const {
+        return _u(i,j) * _v(i,j);
+    }
+
+    std::size_t size() const {
+        return _u.rows() * _v.cols();
+    }
+
+    std::size_t rows() const {
+        return static_cast<E1 const&>(_u).rows();
+    }
+
+    std::size_t cols() const {
+        return static_cast<E2 const&>(_v).cols();
+    }
+};
+
+/* For matrix multiplication, the standard * operator should be used. */
+template <typename E1, typename E2, typename T>
+MatMul<E1, E2, T> operator*(MatOp<E1, T> const& u, MatOp<E2, T> const& v) {
+   return MatMul<E1, E2, T>(*static_cast<const E1*>(&u), *static_cast<const E2*>(&v));
+}
+
+
+/* Helper function to print matrix to output stream. */
 template<typename T>
 std::ostream& operator<<(std::ostream& os, const Matrix<T>& mat){
   std::cout << std::endl;
