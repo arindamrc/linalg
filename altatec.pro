@@ -9,3 +9,5 @@ SOURCES += \
 HEADERS += \
     matrix.hpp \
     vector.hpp
+
+LIBS += -fopenmp
