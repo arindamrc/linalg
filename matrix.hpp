@@ -126,7 +126,7 @@ public:
     template<typename E>
     Matrix(MatOp<E, T> const& op) : Matrix(op.rows(), op.cols()) {
 
-        #pragma omp parallel for
+        #pragma omp parallel for collapse(2)
         for (std::size_t i = 0; i < op.rows(); i++) {
             for (std::size_t j = 0; j < op.cols(); j++) {
                 (*this)(i,j) = op(i,j);
@@ -148,7 +148,7 @@ public:
 
         data_.resize(size_);
 
-        #pragma omp parallel for
+        #pragma omp parallel for collapse(2)
         for (std::size_t i = 0; i < rows_; i++) {
             for (std::size_t j = 0; j < cols_; j++) {
                 (*this)(i,j) = other(i,j);
@@ -200,7 +200,7 @@ public:
     Matrix<T> t() const {
         Matrix<T> result(cols_, rows_, T(0));
 
-        #pragma omp parallel for
+        #pragma omp parallel for collapse(2)
         for (std::size_t i = 0; i < result.rows(); i++) {
             for (std::size_t j = 0; j < result.cols(); j++) {
                 result(i,j) = (*this)(j,i);
