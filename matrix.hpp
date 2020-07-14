@@ -55,7 +55,7 @@ class Matrix : public MatOp<Matrix<T>, T>
     // make sure we instatiate the correct template types.
     static_assert (std::is_arithmetic<T>::value, "Matrix can only contain elements that support arithmetic operations!");
 
-private:
+protected:
 
     /* The rows and columns of the 2D matrix. */
     std::size_t rows_, cols_, size_;
@@ -72,7 +72,7 @@ public:
 
     /*
      * Construct a matrix with the given dimensions r and c
-     * and fill it with zero.
+     * and fill it with zeros.
     */
     Matrix(const std::size_t r, const std::size_t c) : Matrix(r, c, T(0)){
     }
@@ -125,8 +125,8 @@ public:
     */
     template<typename E>
     Matrix(MatOp<E, T> const& op) : Matrix(op.rows(), op.cols()) {
-        for (std::size_t i = 0; i != op.rows(); ++i) {
-            for (std::size_t j = 0; j != op.cols(); ++j) {
+        for (std::size_t i = 0; i < op.rows(); i++) {
+            for (std::size_t j = 0; j < op.cols(); j++) {
                 (*this)(i,j) = op(i,j);
             }
         }
@@ -185,7 +185,7 @@ public:
     /*
      * Resize the matrix.
     */
-    void resize(std::size_t r, std::size_t c){
+    void resize(std::size_t r, std::size_t c) {
         assert(r * c == size_);
         rows_ = r;
         cols_ = c;
@@ -225,14 +225,14 @@ public:
     /*
      * The number of rows in the matrix.
     */
-    std::size_t rows() const{
+    std::size_t rows() const {
         return rows_;
     }
 
     /*
      * The number of columns in the matrix.
     */
-    std::size_t cols() const{
+    std::size_t cols() const {
         return cols_;
     }
 
@@ -413,7 +413,53 @@ MatScale<E, T> operator*(T const& v, MatOp<E, T> const& u) {
 
 
 
-/* Element-wise multiplication. */
+/* Scalar Addition. */
+template <typename E, typename T>
+class MatShift : public MatOp<MatShift<E, T>, T> {
+
+private:
+
+    E const& _u;
+    T const& _v;
+
+public:
+
+    MatShift(E const& u, T const& v) : _u(u), _v(v) {
+    }
+
+    T operator()(std::size_t i, std::size_t j) const {
+        return _u(i,j) + _v;
+    }
+
+    std::size_t size() const {
+        return _u.size();
+    }
+
+    std::size_t rows() const {
+        return static_cast<E const&>(_u).rows();
+    }
+
+    std::size_t cols() const {
+        return static_cast<E const&>(_u).cols();
+    }
+};
+
+/* Overload the scalar addition so that it can be done on both sides. */
+
+template <typename E, typename T>
+MatShift<E, T> operator+(MatOp<E, T> const& u, T const& v) {
+   return MatShift<E, T>(*static_cast<const E*>(&u), *static_cast<const T*>(&v));
+}
+
+template <typename E, typename T>
+MatShift<E, T> operator+(T const& v, MatOp<E, T> const& u) {
+   return MatShift<E, T>(*static_cast<const E*>(&u), *static_cast<const T*>(&v));
+}
+
+
+
+
+/* Matrix multiplication. */
 template <typename E1, typename E2, typename T>
 class MatMul : public MatOp<MatMul<E1, E2, T>, T> {
 
@@ -421,16 +467,21 @@ private:
 
     E1 const& _u;
     E2 const& _v;
+    E2 const _vt;
 
 public:
 
-    MatMul(E1 const& u, E2 const& v) : _u(u), _v(v) {
+    MatMul(E1 const& u, E2 const& v) : _u(u), _v(v), _vt(v.t()) {
         // pre-condition for matrix multiplication.
         assert(u.cols() == v.rows());
     }
 
     T operator()(std::size_t i, std::size_t j) const {
-        return _u(i,j) * _v(i,j);
+        T sum = T(0);
+        for (std::size_t c = 0; c < _u.cols(); c++) {
+            sum += _u(i,c) * _vt(j,c);
+        }
+        return sum;
     }
 
     std::size_t size() const {
@@ -453,18 +504,20 @@ MatMul<E1, E2, T> operator*(MatOp<E1, T> const& u, MatOp<E2, T> const& v) {
 }
 
 
+
+
 /* Helper function to print matrix to output stream. */
 template<typename T>
 std::ostream& operator<<(std::ostream& os, const Matrix<T>& mat){
-  std::cout << std::endl;
-  for (std::size_t i=0; i < mat.rows(); i++) {
-      for (std::size_t j = 0; j < mat.cols(); j++) {
-          os << mat(i,j) << ' ';
-      }
-      os << std::endl;
-  }
-  os << std::endl;
-  return os;
+    os << std::endl;
+    for (std::size_t i=0; i < mat.rows(); i++) {
+        for (std::size_t j = 0; j < mat.cols(); j++) {
+            os << mat(i,j) << ' ';
+        }
+        os << std::endl;
+    }
+    os << std::endl;
+    return os;
 }
 
 #endif // MATRIX_H
