@@ -23,6 +23,8 @@ class MatOp {
 
 public:
 
+    // use 'auto' as the return type since the type
+    // of the subclass 'Matrix' isn't known yet.
     auto operator()(std::size_t i, std::size_t j) const {
         return static_cast<E const&>(*this)(i,j);
     }

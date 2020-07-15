@@ -1,6 +1,9 @@
 #include <iostream>
-#include "vector.hpp"
+#include <cstdlib>
+#include <algorithm>
+#include <chrono>
 
+#include "vector.hpp"
 
 int main()
 {
@@ -112,8 +115,33 @@ int main()
     m17.resize(3,2);
     std::cout << "m17:" << m17 << std::endl;
 
+    // Mixed type matrix multiplication
     Matrix<double> m18 = m16 * m17;
     std::cout << "m18:" << m18 << std::endl;
+
+    // Large matrix operation chains
+    srand(42);
+    Matrix<double> l1(500, 500);
+    Matrix<double> l2(500, 500);
+
+    for (std::size_t i = 0; i < 500; i++) {
+        for (std::size_t j=0; j < 500; j++) {
+            l1(i,j) = (rand() % 1000) + 1;
+            l2(i,j) = (rand() % 1000) + 1;
+        }
+    }
+
+    auto start = std::chrono::high_resolution_clock::now();
+    Matrix<double> l3 = (l1 + l2) - (0.5 * l1) + (l1 + 10);
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "Chained operation time:" << duration.count() / 1000 << " milliseconds" << std::endl;
+
+    start = std::chrono::high_resolution_clock::now();
+    Matrix<double> l4 = l1 * l3;
+    stop = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "Matrix multiplication time:" << duration.count() / 1000 << " milliseconds" <<  std::endl;
 
     return 0;
 }
