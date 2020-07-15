@@ -18,12 +18,12 @@
  *
  * See: https://en.wikipedia.org/wiki/Expression_templates
 */
-template <typename E, typename T>
+template <typename E>
 class MatOp {
 
 public:
 
-    T operator()(std::size_t i, std::size_t j) const {
+    auto operator()(std::size_t i, std::size_t j) const {
         return static_cast<E const&>(*this)(i,j);
     }
 
@@ -51,7 +51,7 @@ public:
  * i.e. integers or floats.
 */
 template<typename T, typename std::enable_if<std::is_arithmetic<T>::value>::type* = nullptr>
-class Matrix : public MatOp<Matrix<T>, T>
+class Matrix : public MatOp<Matrix<T>>
 {
 
     // make sure we instatiate the correct template types.
@@ -150,7 +150,7 @@ public:
      * Constructor for a matrix operation.
     */
     template<typename E>
-    Matrix(MatOp<E, T> const& op) : Matrix(op.rows(), op.cols()) {
+    Matrix(MatOp<E> const& op) : Matrix(op.rows(), op.cols()) {
 
         #pragma omp parallel for collapse(2)
         for (std::size_t i = 0; i < op.rows(); i++) {
@@ -276,8 +276,8 @@ public:
 
 
 /* Element-wise addition. */
-template <typename E1, typename E2, typename T>
-class MatSum : public MatOp<MatSum<E1, E2, T>, T> {
+template <typename E1, typename E2>
+class MatSum : public MatOp<MatSum<E1, E2>> {
 
 private:
 
@@ -292,7 +292,7 @@ public:
         assert(u.cols() == v.cols());
     }
 
-    T operator()(std::size_t i, std::size_t j) const {
+    auto operator()(std::size_t i, std::size_t j) const {
         return _u(i,j) + _v(i,j);
     }
 
@@ -309,16 +309,16 @@ public:
     }
 };
 
-template <typename E1, typename E2, typename T>
-MatSum<E1, E2, T> operator+(MatOp<E1, T> const& u, MatOp<E2, T> const& v) {
-   return MatSum<E1, E2, T>(*static_cast<const E1*>(&u), *static_cast<const E2*>(&v));
+template <typename E1, typename E2>
+MatSum<E1, E2> operator+(MatOp<E1> const& u, MatOp<E2> const& v) {
+   return MatSum<E1, E2>(*static_cast<const E1*>(&u), *static_cast<const E2*>(&v));
 }
 
 
 
 /* Element-wise subtraction. */
-template <typename E1, typename E2, typename T>
-class MatSub : public MatOp<MatSub<E1, E2, T>, T> {
+template <typename E1, typename E2>
+class MatSub : public MatOp<MatSub<E1, E2>> {
 
 private:
 
@@ -333,7 +333,7 @@ public:
         assert(u.cols() == v.cols());
     }
 
-    T operator()(std::size_t i, std::size_t j) const {
+    auto operator()(std::size_t i, std::size_t j) const {
         return _u(i,j) - _v(i,j);
     }
 
@@ -350,16 +350,16 @@ public:
     }
 };
 
-template <typename E1, typename E2, typename T>
-MatSub<E1, E2, T> operator-(MatOp<E1, T> const& u, MatOp<E2, T> const& v) {
-   return MatSub<E1, E2, T>(*static_cast<const E1*>(&u), *static_cast<const E2*>(&v));
+template <typename E1, typename E2>
+MatSub<E1, E2> operator-(MatOp<E1> const& u, MatOp<E2> const& v) {
+   return MatSub<E1, E2>(*static_cast<const E1*>(&u), *static_cast<const E2*>(&v));
 }
 
 
 
 /* Element-wise multiplication. */
-template <typename E1, typename E2, typename T>
-class MatElMul : public MatOp<MatElMul<E1, E2, T>, T> {
+template <typename E1, typename E2>
+class MatElMul : public MatOp<MatElMul<E1, E2>> {
 
 private:
 
@@ -374,7 +374,7 @@ public:
         assert(u.cols() == v.cols());
     }
 
-    T operator()(std::size_t i, std::size_t j) const {
+    auto operator()(std::size_t i, std::size_t j) const {
         return _u(i,j) * _v(i,j);
     }
 
@@ -394,15 +394,15 @@ public:
 /* The element wise multiplication is defined to be & instead of *, which is reserved
  * for matrix multiplication.
 */
-template <typename E1, typename E2, typename T>
-MatElMul<E1, E2, T> operator&(MatOp<E1, T> const& u, MatOp<E2, T> const& v) {
-   return MatElMul<E1, E2, T>(*static_cast<const E1*>(&u), *static_cast<const E2*>(&v));
+template <typename E1, typename E2>
+MatElMul<E1, E2> operator&(MatOp<E1> const& u, MatOp<E2> const& v) {
+   return MatElMul<E1, E2>(*static_cast<const E1*>(&u), *static_cast<const E2*>(&v));
 }
 
 
 /* Scalar multiplication. */
 template <typename E, typename T>
-class MatScale : public MatOp<MatScale<E, T>, T> {
+class MatScale : public MatOp<MatScale<E, T>> {
 
 private:
 
@@ -414,7 +414,7 @@ public:
     MatScale(E const& u, T const& v) : _u(u), _v(v) {
     }
 
-    T operator()(std::size_t i, std::size_t j) const {
+    auto operator()(std::size_t i, std::size_t j) const {
         return _u(i,j) * _v;
     }
 
@@ -433,13 +433,13 @@ public:
 
 /* Overload the scalar multiplication so that it can be done on both sides. */
 
-template <typename E, typename T>
-MatScale<E, T> operator*(MatOp<E, T> const& u, T const& v) {
+template <typename E, typename T, typename std::enable_if<std::is_arithmetic<T>::value>::type* = nullptr>
+MatScale<E, T> operator*(MatOp<E> const& u, T const& v) {
    return MatScale<E, T>(*static_cast<const E*>(&u), *static_cast<const T*>(&v));
 }
 
-template <typename E, typename T>
-MatScale<E, T> operator*(T const& v, MatOp<E, T> const& u) {
+template <typename E, typename T, typename std::enable_if<std::is_arithmetic<T>::value>::type* = nullptr>
+MatScale<E, T> operator*(T const& v, MatOp<E> const& u) {
    return MatScale<E, T>(*static_cast<const E*>(&u), *static_cast<const T*>(&v));
 }
 
@@ -447,7 +447,7 @@ MatScale<E, T> operator*(T const& v, MatOp<E, T> const& u) {
 
 /* Scalar Addition. */
 template <typename E, typename T>
-class MatShift : public MatOp<MatShift<E, T>, T> {
+class MatShift : public MatOp<MatShift<E, T>> {
 
 private:
 
@@ -459,7 +459,7 @@ public:
     MatShift(E const& u, T const& v) : _u(u), _v(v) {
     }
 
-    T operator()(std::size_t i, std::size_t j) const {
+    auto operator()(std::size_t i, std::size_t j) const {
         return _u(i,j) + _v;
     }
 
@@ -478,13 +478,13 @@ public:
 
 /* Overload the scalar addition so that it can be done on both sides. */
 
-template <typename E, typename T>
-MatShift<E, T> operator+(MatOp<E, T> const& u, T const& v) {
+template <typename E, typename T, typename std::enable_if<std::is_arithmetic<T>::value>::type* = nullptr>
+MatShift<E, T> operator+(MatOp<E> const& u, T const& v) {
    return MatShift<E, T>(*static_cast<const E*>(&u), *static_cast<const T*>(&v));
 }
 
-template <typename E, typename T>
-MatShift<E, T> operator+(T const& v, MatOp<E, T> const& u) {
+template <typename E, typename T, typename std::enable_if<std::is_arithmetic<T>::value>::type* = nullptr>
+MatShift<E, T> operator+(T const& v, MatOp<E> const& u) {
    return MatShift<E, T>(*static_cast<const E*>(&u), *static_cast<const T*>(&v));
 }
 
@@ -492,8 +492,8 @@ MatShift<E, T> operator+(T const& v, MatOp<E, T> const& u) {
 
 
 /* Matrix multiplication. */
-template <typename E1, typename E2, typename T>
-class MatMul : public MatOp<MatMul<E1, E2, T>, T> {
+template <typename E1, typename E2>
+class MatMul : public MatOp<MatMul<E1, E2>> {
 
 private:
 
@@ -508,8 +508,8 @@ public:
         assert(u.cols() == v.rows());
     }
 
-    T operator()(std::size_t i, std::size_t j) const {
-        T sum = T(0);
+    auto operator()(std::size_t i, std::size_t j) const {
+        auto sum = 0;
         for (std::size_t c = 0; c < _u.cols(); c++) {
             sum += _u(i,c) * _vt(j,c);
         }
@@ -530,9 +530,9 @@ public:
 };
 
 /* For matrix multiplication, the standard * operator should be used. */
-template <typename E1, typename E2, typename T>
-MatMul<E1, E2, T> operator*(MatOp<E1, T> const& u, MatOp<E2, T> const& v) {
-   return MatMul<E1, E2, T>(*static_cast<const E1*>(&u), *static_cast<const E2*>(&v));
+template <typename E1, typename E2>
+MatMul<E1, E2> operator*(MatOp<E1> const& u, MatOp<E2> const& v) {
+   return MatMul<E1, E2>(*static_cast<const E1*>(&u), *static_cast<const E2*>(&v));
 }
 
 

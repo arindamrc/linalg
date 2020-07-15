@@ -102,7 +102,7 @@ int main()
     std::cout << "d1:" << d1;
 
     // Matrix resize operation
-    Matrix<double> m16 = {1,2,3,4,5,6};
+    Matrix<int> m16 = {1,2,3,4,5,6};
     std::cout << "m16:" << m16 << std::endl;
     m16.resize(2,3);
     std::cout << "m16:" << m16 << std::endl;

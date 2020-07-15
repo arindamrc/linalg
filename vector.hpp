@@ -48,7 +48,7 @@ public:
      * Constructor for a vector operation.
     */
     template<typename E>
-    Vector(MatOp<E, T> const& op) : Matrix<T>(op) {}
+    Vector(MatOp<E> const& op) : Matrix<T>(op) {}
 
     /*
      * Overloaded assignment operator.
