@@ -7,7 +7,7 @@
  * Vector is implemented as a matric with
  * only one column but n rows.
 */
-template<typename T>
+template<typename T, typename std::enable_if<std::is_arithmetic<T>::value>::type* = nullptr>
 class Vector : public Matrix<T>
 {
 
@@ -28,18 +28,21 @@ public:
      * Construct a vector with the given size s
      * and fill it with val.
     */
-    Vector(const std::size_t s, const T val) : Matrix<T>(1, s, val) {}
+    template<typename U, typename std::enable_if<std::is_convertible<T, U>::value>::type* = nullptr>
+    Vector(const std::size_t s, const U val) : Matrix<T>(1, s, val) {}
 
     /*
      * Construct a vector with the given size s
      * and fill it with valarray.
     */
-    Vector(const std::size_t s, const T* valarray) : Matrix<T>(1, s, valarray) {}
+    template<typename U, typename std::enable_if<std::is_convertible<T, U>::value>::type* = nullptr>
+    Vector(const std::size_t s, const U* valarray) : Matrix<T>(1, s, valarray) {}
 
     /*
      * Construct a vector with the given values.
     */
-    Vector(const std::initializer_list<T> vals) : Matrix<T>(vals) {}
+    template<typename U, typename std::enable_if<std::is_convertible<T, U>::value>::type* = nullptr>
+    Vector(const std::initializer_list<U> vals) : Matrix<T>(vals) {}
 
     /*
      * Constructor for a vector operation.
@@ -50,14 +53,16 @@ public:
     /*
      * Overloaded assignment operator.
     */
-    Vector<T>& operator=(const Vector<T>& other){
+    template<typename U, typename std::enable_if<std::is_convertible<T, U>::value>::type* = nullptr>
+    Vector<T>& operator=(const Vector<U>& other){
         return static_cast<Vector<T>&>(super_type::operator=(other));
     }
 
     /*
      * Overload assignment operator to allow initialization.
     */
-    Vector<T>& operator=(std::initializer_list<T> vals){
+    template<typename U, typename std::enable_if<std::is_convertible<T, U>::value>::type* = nullptr>
+    Vector<T>& operator=(std::initializer_list<U> vals){
         return static_cast<Vector<T>&>(super_type::operator=(vals));
     }
 

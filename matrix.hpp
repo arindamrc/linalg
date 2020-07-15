@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <limits>
 #include <iostream>
+#include <algorithm>
+#include <functional>
 
 #define MAX_SZ (std::size_t)-1
 
@@ -48,12 +50,12 @@ public:
  * This class supports template arguments that are arithmetic types
  * i.e. integers or floats.
 */
-template<typename T>
+template<typename T, typename std::enable_if<std::is_arithmetic<T>::value>::type* = nullptr>
 class Matrix : public MatOp<Matrix<T>, T>
 {
 
     // make sure we instatiate the correct template types.
-    static_assert (std::is_arithmetic<T>::value, "Matrix can only contain elements that support arithmetic operations!");
+//    static_assert (std::is_arithmetic<T>::value, "Matrix can only contain elements that support arithmetic operations!");
 
 protected:
 
@@ -81,7 +83,8 @@ public:
      * Construct a matrix with the given dimensions r and c
      * and fill it with val.
     */
-    Matrix(const std::size_t r, const std::size_t c, const T val){
+    template<typename U, typename std::enable_if<std::is_convertible<T, U>::value>::type* = nullptr>
+    Matrix(const std::size_t r, const std::size_t c, const U val){
         assert (r > 0 && c > 0 && r < MAX_SZ && c < MAX_SZ);
         rows_ = r;
         cols_ = c;
@@ -90,23 +93,46 @@ public:
     }
 
     /*
+     * Copy constructor.
+    */
+    template<typename U, typename std::enable_if<std::is_convertible<T, U>::value>::type* = nullptr>
+    Matrix(const Matrix<U> &other){
+        rows_ = other.rows();
+        cols_ = other.cols();
+        size_ = other.size();
+        data_.resize(size_);
+
+        #pragma omp parallel for collapse(2)
+        for (std::size_t i = 0; i < rows_; i++) {
+            for (std::size_t j = 0; j < cols_; j++) {
+                (*this)(i,j) = other(i,j);
+            }
+        }
+    }
+
+    /*
      * Construct a matrix with the given dimensions r and c
      * and fill it with valarray.
     */
-    Matrix(const std::size_t r, const std::size_t c, const T* valarray){
+    template<typename U, typename std::enable_if<std::is_convertible<T, U>::value>::type* = nullptr>
+    Matrix(const std::size_t r, const std::size_t c, const U* valarray){
         assert (r > 0 && c > 0 && r < MAX_SZ && c < MAX_SZ);
         rows_ = r;
         cols_ = c;
         size_ = r * c;
         data_.resize(r * c);
-        data_ = valarray;
+
+        for (std::size_t i = 0; i < size_; i++) {
+            data_ = valarray[i];
+        }
     }
 
     /*
      * Construct a matrix with the given values.
      * The matrix is assumed to have a single row.
     */
-    Matrix(const std::initializer_list<T> vals){
+    template<typename U, typename std::enable_if<std::is_convertible<T, U>::value>::type* = nullptr>
+    Matrix(const std::initializer_list<U> vals){
         data_.resize(vals.size());
 
         int i = 0;
@@ -137,7 +163,8 @@ public:
     /*
      * Overloaded assignment operator.
     */
-    Matrix<T>& operator=(const Matrix<T>& other){
+    template<typename U, typename std::enable_if<std::is_convertible<T, U>::value>::type* = nullptr>
+    Matrix<T>& operator=(const Matrix<U>& other){
         if (&other == this) {
             return *this;
         }
@@ -161,7 +188,8 @@ public:
     /*
      * Overload assignment operator to allow initialization.
     */
-    Matrix<T>& operator=(std::initializer_list<T> vals){
+    template<typename U, typename std::enable_if<std::is_convertible<T, U>::value>::type* = nullptr>
+    Matrix<T>& operator=(std::initializer_list<U> vals){
         assert(size_ == vals.size());
 
         int i = 0;
@@ -176,7 +204,7 @@ public:
     /*
      * The default destructor (empty).
     */
-    ~Matrix() {};
+    virtual ~Matrix() {};
 
     /*
      * Size of the matrix or the total number of elements in it.
@@ -215,7 +243,7 @@ public:
     */
     const T& operator()(std::size_t i, std::size_t j) const {
         assert (i < rows_ && j < cols_);
-        return data_[i * rows_ + j];
+        return data_[i * cols_ + j];
     }
 
     /*
@@ -223,7 +251,7 @@ public:
     */
     T& operator()(std::size_t i, std::size_t j) {
         assert (i < rows_ && j < cols_);
-        return data_[i * rows_ + j];
+        return data_[i * cols_ + j];
     }
 
     /*

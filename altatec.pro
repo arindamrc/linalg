@@ -10,4 +10,7 @@ HEADERS += \
     matrix.hpp \
     vector.hpp
 
-LIBS += -fopenmp
+QMAKE_CXXFLAGS += -fopenmp
+QMAKE_LFLAGS += -fopenmp
+
+LIBS += -lgomp
